@@ -12,11 +12,14 @@ import springfox.documentation.service.*;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spi.service.contexts.SecurityContext;
 import springfox.documentation.spring.web.plugins.Docket;
+import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
 import javax.inject.Inject;
+import java.util.Arrays;
 import java.util.List;
 
 import static com.ncov.module.common.Constants.SPRING_PROFILE_DEVELOPMENT;
+import static com.ncov.module.common.Constants.SPRING_PROFILE_LOCAL;
 
 /**
  * @author JackJun
@@ -24,6 +27,7 @@ import static com.ncov.module.common.Constants.SPRING_PROFILE_DEVELOPMENT;
  * Life is not just about survival.
  */
 @Configuration
+@EnableSwagger2
 public class SwaggerConfig {
 
     @Inject
@@ -40,6 +44,10 @@ public class SwaggerConfig {
                 .contact(new Contact("Jackjun", "https://4ncov.github.io", "jack@retzero.com"))
                 .version("1.0.0").build();
 
+        String activeProfile = env.getActiveProfiles()[0];
+        boolean isSwaggerEnabled = Arrays.asList(SPRING_PROFILE_DEVELOPMENT, SPRING_PROFILE_LOCAL)
+                .contains(activeProfile);
+
         return new Docket(DocumentationType.SWAGGER_2)
                 .apiInfo(apiInfo)
                 .forCodeGeneration(true)
@@ -47,7 +55,7 @@ public class SwaggerConfig {
                 .select()
                 .apis(RequestHandlerSelectors.basePackage("com.ncov.module.controller"))
                 .paths(PathSelectors.regex("/api/.*"))
-                .build().enable(SPRING_PROFILE_DEVELOPMENT.equals(env.getActiveProfiles()[0]))
+                .build().enable(isSwaggerEnabled)
                 .securitySchemes(Lists.newArrayList(apiKey()))
                 .securityContexts(securityContexts());
     }

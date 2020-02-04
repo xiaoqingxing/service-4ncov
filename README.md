@@ -1,5 +1,71 @@
 # 4nCoV 后端
 
+4nCoV平台的后端服务.
+
+## 环境
+
+### 运行环境
+- Java 8
+- Spring Boot 2.1.0.RELEASE
+- MyBatis 3.1.0
+- Flyway 用于数据库DDL(Data Definition Language)脚本版本控制
+- MySQL 5.7
+- Docker
+
+
+### 测试框架
+- JUnit 5 jupiter
+- Mockito 3
+
+
+## 本地构建与测试
+- `mvn clean test # 跑测试`
+- `mvn clean package # 构建,构建完成的包位于 ./target 目录下`
+
+
+## 部署与启动
+
+### Plain JRE
+```
+java -jar -Dspring.profiles.active=${ACTIVE_PROFILE} \
+    -Dspring.datasource.username=${DB_USERNAME} \
+    -Dspring.datasource.password=${DB_PASSWORD} \
+    -Dspring.datasource.url=${DB_URL} \
+    -Dsecurity.jwtSecret=${JWT_SECRET} \
+    target/4ncov-0.0.1-SNAPSHOT.jar 
+# 通过传入ACTIVE_PROFILE的值确定当前环境配置,可选项:dev,prod
+```
+
+### Docker
+- 打包docker镜像: `docker build -t 4ncov/service . -f Dockerfile`
+- 部署docker容器: 
+```
+docker run -dp 8000:8000 --name 4ncov-service \
+    -e SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE} \ # dev,prod
+    -e DB_USERNAME=${DB_USERNAME} \ # database username
+    -e DB_PASSWORD=${DB_PASSWORD} \ # database password
+    -e DB_HOST=${DB_HOST} \ # database host
+    -e DB_PORT=${DB_PORT} \ # database port
+    -e JWT_SECRET=${JWT_SECRET} \ # jwt secret
+    4ncov/service
+```
+
+
+## 数据库版本控制
+使用`**flyway**`进行数据库脚本的版本控制,服务启动时会自动进行数据库脚本的migration.  
+所有需要在数据库执行的脚本请放置于: `src/main/resources/db/migration`,命名方式为:`Vyyyy_MM_dd_HH_mm__Name_Of_Script.sql`,如`V2020_01_31_20_01__Create_4ncov_Tables.sql`.  
+通过运行`FlywayApplication`可以单独将数据库脚本migrate到所连接的数据库当中.
+
+## 项目进度与版本控制
+- 看板: [GitHub Projects](https://github.com/4ncov/service-4ncov/projects/1)
+- 开始开发前请自觉将看板的issue分配给自己并从`TODO`挪入`IN PROGRESS`,开发并验证完成之后挪入`DONE`
+- 创建短时的分支来进行开发
+- 分支命名
+  - 故事 `story-${issueNo}-${description}`, 如 `story-8-requester-signup-endpoint`
+  - 任务 `task-${issueNo}-${description}`, 如`task-15-api-documentation`
+- 合并回master分支之前,需要提PR(Pull Request)申请将分支合并回master,并分配PR给**除自己之外**的collaborator进行code review
+- Code review可直接在PR当中进行
+
 
 ## 编码规约
 - 严格遵照plugin: `Alibaba Java Coding Guidelines`.
@@ -71,5 +137,15 @@ try {
 - 尽量使用Stream流提升代码可读性
 - 禁止过度抽象而影响代码可读性
 - 代码提交必须经过测试
-- 未完成的功能、存在的问题需要用 `//TODO 注明`
+- 未完成的功能、存在的问题需要用 `//TODO` 注明
 - 传入后台的VM(ViewModel)对象遵守[JSR-303](https://www.ibm.com/developerworks/cn/java/j-lo-jsr303/index.html)标准，注解`message`字段必填(全局异常处理器会自动返回错误消息)
+- 除非有必要,否则所有的数据库ID字段使用MySQL `BIGINT`,java代码当中使用`Long`.
+- 本地开发应使用适当的本地配置如`application-local.yml`,并使用`local`作为active profile. 可复制`src/main/resources/config/application-local.yml.template`创建一个本地开发配置
+- 单元测试如有必要请使用mockito对依赖进行mock
+- **切勿在测试代码当中连接dev/prod数据库**
+- **切勿将任何线上环境的数据库用户名密码或其它敏感信息提交到本项目**
+
+
+## 接口设计原则
+
+- 尽量遵循**RESTful**风格
